@@ -1,0 +1,58 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+      - name: Verify checkout and native Go architecture
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          printf 'Checked out %s\n' "$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD)" = "$PR_HEAD"
+          go version
+          test "$(go env GOHOSTOS)" = linux
+          test "$(go env GOOS)" = linux
+          test "$(go env GOHOSTARCH)" = "$EXPECTED_ARCH"
+          test "$(go env GOARCH)" = "$EXPECTED_ARCH"
+      - run: make build lint test
+      - name: Test release logic
+        if: matrix.arch == 'amd64'
+        run: make test-release
+      - name: Test Traefik with the local plugin
+        if: matrix.arch == 'amd64'
+        run: make test-traefik

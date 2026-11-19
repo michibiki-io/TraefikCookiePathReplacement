@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: release-main
+  queue: max
+
+jobs:
+  release:
+    if: ${{ !github.event.created && !github.event.deleted && !github.event.forced }}
+    runs-on: ${{ vars.ACTIONS_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Match the merged pull request and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B scripts/release/publish.py

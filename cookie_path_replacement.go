@@ -14,16 +14,22 @@ type Config struct {
 }
 
 type ReplacementConfig struct {
-	Name        string `json:"name_regex,omitempty" toml:"name_regex,omitempty" yaml:"name_regex,omitempty"`    //Regex to match the cookie name, if empty it will match all cookies
-	Original    string `json:"original,omitempty" toml:"original,omitempty" yaml:"original,omitempty"`          //Regex to match the original path
-	Replacement string `json:"replacement,omitempty" toml:"replacement,omitempty" yaml:"replacement,omitempty"` //Replacement path, can use {{group_name}} to reference named capture groups from the original regex
+	Name string `json:"name_regex,omitempty" toml:"name_regex,omitempty" yaml:"name_regex,omitempty" mapstructure:"name"`
+	// Traefik decodes Yaegi plugin options using mapstructure. Keep name for existing configurations.
+	NameRegex   string `json:"-" toml:"-" yaml:"-" mapstructure:"name_regex"`
+	Original    string `json:"original,omitempty" toml:"original,omitempty" yaml:"original,omitempty"`
+	Replacement string `json:"replacement,omitempty" toml:"replacement,omitempty" yaml:"replacement,omitempty"`
 }
 
 func (rc *ReplacementConfig) compile() (compiledReplacement, error) {
 	var name *regexp.Regexp
 	var err error
-	if rc.Name != "" {
-		name, err = regexp.Compile("^" + rc.Name + "$")
+	namePattern := rc.NameRegex
+	if namePattern == "" {
+		namePattern = rc.Name
+	}
+	if namePattern != "" {
+		name, err = regexp.Compile("^" + namePattern + "$")
 		if err != nil {
 			return compiledReplacement{}, err
 		}

@@ -1,10 +1,10 @@
 displayName: Cookie Path Replacement
 type: middleware
-import: github.com/JoshuaBowerman/TraefikCookiePathReplacement
-summary: "This middleware can replace the path in a cookie with a new path. It supports regex and named capture groups in the replacements."
+import: github.com/michibiki-io/TraefikCookiePathReplacement
+summary: "Rewrite cookie paths using regular expressions and named captures."
 
 testData:
   replacements:
-    - name: "test(.*)"
+    - name_regex: "test(.*)"
       original: "(?P<before>.*)/old/(?P<after>.*)"
       replacement: "{{before}}/new/{{after}}"

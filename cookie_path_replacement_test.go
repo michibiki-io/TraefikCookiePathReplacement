@@ -160,6 +160,27 @@ func TestCookiePathReplacement(t *testing.T) {
 	}
 }
 
+func TestNameRegex(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		legacyName string
+	}{
+		{name: "NameRegexOnly"},
+		{name: "NameRegexOverridesLegacyName", legacyName: "legacy"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config := ReplacementConfig{Name: tc.legacyName, NameRegex: "current"}
+			replacement, err := config.compile()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if replacement.name == nil || !replacement.name.MatchString("current") || replacement.name.MatchString("legacy") {
+				t.Fatalf("expected only the current cookie name to match, got %v", replacement.name)
+			}
+		})
+	}
+}
+
 func TestResponseWriterPassThrough(t *testing.T) {
 	mockWriter := &MockResponseWriter{}
 	rw := responseWriter{
