@@ -88,13 +88,19 @@ def stable_tags(history):
 
 
 def commit_bump(message):
-    subject, _, body = message.partition("\n")
+    subject, _, body = message.replace("\r\n", "\n").partition("\n")
     conventional = CONVENTIONAL_SUBJECT.match(subject)
     if not conventional:
         return 2
-    footer = body.strip("\n").rsplit("\n\n", 1)[-1] if body.startswith("\n") else ""
-    if conventional[2] or (FOOTER_START.match(footer) and BREAKING_FOOTER.search(footer)):
+    if conventional[2]:
         return 0
+    if body.startswith("\n"):
+        # Git tools may append a trailer after an extra blank line.
+        for paragraph in reversed(body.strip("\n").split("\n\n")):
+            if not FOOTER_START.match(paragraph):
+                break
+            if BREAKING_FOOTER.search(paragraph):
+                return 0
     if conventional[1].lower() == "feat":
         return 1
     return 2

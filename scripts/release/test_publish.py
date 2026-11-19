@@ -112,9 +112,12 @@ class ReleaseTests(unittest.TestCase):
         cases = {
             "fix: update\n\nBREAKING CHANGE: updated format": 0,
             "fix: update\n\nDescription.\n\nRefs: #1\nBREAKING-CHANGE: updated format": 0,
+            "feat: update\n\nBREAKING CHANGE: updated format\n\nCo-authored-by: A <a@example.com>\n": 0,
+            "feat: update\r\n\r\nBREAKING CHANGE: updated format\r\n": 0,
             "docs: update the guide": 2,
             "Update the guide\n\nBREAKING CHANGE: template example": 2,
             "fix: update\n\nExample:\nBREAKING CHANGE: sample\n\nEnd of example.": 2,
+            "fix: update\n\nExample:\nBREAKING CHANGE: sample\n\nRefs: #1": 2,
             "Feat(plugin): add support": 1,
         }
         for message, bump in cases.items():
