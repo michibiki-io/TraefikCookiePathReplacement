@@ -46,3 +46,5 @@ Use the Go version declared in [go.mod](go.mod). The plugin and its Go tests use
 Run `make test-traefik` with Python 3 and Docker on Linux to test a real Traefik v3.7.19 instance. The test sends two cookies with the same path and verifies that only the name match is rewritten. Run `make test-release` to exercise release planning without publishing.
 
 The Test workflow builds and tests each PR head on native Linux AMD64 and ARM64 runners. A push to `main` publishes tagged Yaegi source only when its tip exactly matches the result of a merged PR. Release versions and notes use the original PR commits.
+
+Mark a breaking change with `!` before the colon in a Conventional Commit subject, for example `feat(config)!: rename a setting`. The release workflow also recognizes `BREAKING CHANGE:` and `BREAKING-CHANGE:` in consecutive footer paragraphs at the end of the commit message. Each footer paragraph starts with a trailer such as `Refs: #42` or `Refs #42`. Use `!` in the subject when the breaking-change explanation spans multiple paragraphs.
