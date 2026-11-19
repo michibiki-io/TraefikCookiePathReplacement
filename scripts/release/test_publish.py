@@ -40,10 +40,12 @@ class ReleaseTests(unittest.TestCase):
             patch.object(publish, "find_merged_pull_requests", return_value=[]),
             patch.object(publish, "output") as output,
             patch.object(publish.subprocess, "run") as run,
+            patch("builtins.print") as report,
         ):
             publish.publish(REPO, "unmatched")
         output.assert_not_called()
         run.assert_not_called()
+        self.assertTrue(report.call_args.args[0].startswith("::warning::"))
 
     def test_consecutive_merges(self):
         history = ["first", "second", "third"]
@@ -107,8 +109,17 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(commands[0][1], publish.release_notes([(2, ["fix: keep path"])]))
 
     def test_breaking_footer_and_patch_for_other_commits(self):
-        self.assertEqual(publish.commit_bump("fix: update\n\nBREAKING CHANGE: updated format"), 0)
-        self.assertEqual(publish.commit_bump("docs: update the guide"), 2)
+        cases = {
+            "fix: update\n\nBREAKING CHANGE: updated format": 0,
+            "fix: update\n\nDescription.\n\nRefs: #1\nBREAKING-CHANGE: updated format": 0,
+            "docs: update the guide": 2,
+            "Update the guide\n\nBREAKING CHANGE: template example": 2,
+            "fix: update\n\nExample:\nBREAKING CHANGE: sample\n\nEnd of example.": 2,
+            "Feat(plugin): add support": 1,
+        }
+        for message, bump in cases.items():
+            with self.subTest(message=message):
+                self.assertEqual(publish.commit_bump(message), bump)
 
 
 if __name__ == "__main__":

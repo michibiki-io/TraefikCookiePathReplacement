@@ -11,8 +11,9 @@ from pathlib import Path
 
 
 STABLE_TAG = re.compile(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
-CONVENTIONAL_SUBJECT = re.compile(r"^([a-z]+)(?:\([^()]+\))?(!)?: ")
-BREAKING_FOOTER = re.compile(r"^(?:BREAKING CHANGE|BREAKING-CHANGE):", re.MULTILINE)
+CONVENTIONAL_SUBJECT = re.compile(r"^([a-z][a-z0-9-]*)(?:\([^()]+\))?(!)?: \S", re.IGNORECASE)
+FOOTER_START = re.compile(r"^(?:BREAKING CHANGE|[A-Za-z0-9-]+)(?:: | #)")
+BREAKING_FOOTER = re.compile(r"^(?:BREAKING CHANGE|BREAKING-CHANGE): \S", re.MULTILINE)
 COMMIT_QUERY = """
 query($owner:String!, $repo:String!, $number:Int!, $endCursor:String) {
   repository(owner:$owner, name:$repo) {
@@ -89,9 +90,12 @@ def stable_tags(history):
 def commit_bump(message):
     subject, _, body = message.partition("\n")
     conventional = CONVENTIONAL_SUBJECT.match(subject)
-    if (conventional and conventional[2]) or BREAKING_FOOTER.search(body):
+    if not conventional:
+        return 2
+    footer = body.strip("\n").rsplit("\n\n", 1)[-1] if body.startswith("\n") else ""
+    if conventional[2] or (FOOTER_START.match(footer) and BREAKING_FOOTER.search(footer)):
         return 0
-    if conventional and conventional[1] == "feat":
+    if conventional[1].lower() == "feat":
         return 1
     return 2
 
@@ -166,7 +170,8 @@ def published_release(repository, tag):
 def publish(repository, target):
     pull_requests = find_merged_pull_requests(repository, target)
     if not pull_requests:
-        print(f"No merged PR into {repository}:main matches {target}. Skipping release.")
+        print(f"::warning::No merged PR into {repository}:main matches {target}. "
+              "Skipping release. If this push was a merge, rerun this job.")
         return
 
     history = output("git", "rev-list", "--first-parent", "--reverse", "origin/main").splitlines()
